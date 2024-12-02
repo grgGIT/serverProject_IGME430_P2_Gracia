@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
@@ -27,7 +28,7 @@ app.use(
 );
 
 // MongoDB connection
-mongoose.connect("mongodb://localhost:27017/projthree", {
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/projthree", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
