@@ -1,46 +1,70 @@
-require('dotenv').config();
+//require('dotenv').config();
 const express = require("express");
+const path = require('path');
 const mongoose = require("mongoose");
 const session = require("express-session");
-const RedisStore = require("connect-redis")(session);
-const { createClient } = require("redis");
+const compression = require('compression');
+const bodyParser = require('body-parser');
+const favicon = require('serve-favicon');
+const RedisStore = require("connect-redis").default;
+//const { createClient } = require("redis");
 const handlebars = require("express-handlebars");
+const helmet = require('helmet');
+const redis = require('redis');
+
+// Import route files
 const authRoutes = require("./routes/auth");
 const tweetRoutes = require("./routes/tweet");
 const profileRoutes = require("./routes/profile");
 
-const app = express();
-const redisClient = createClient();
+const port = process.env.PORT || process.env.PORT || 3000;
 
-app.engine("handlebars", handlebars());
-app.set("view engine", "handlebars");
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(
-  session({
-    store: new RedisStore({ client: redisClient }),
-    secret: "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-  })
-);
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/projthree", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+const dbURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projthree';
+mongoose.connect(dbURI).catch((err) => {
+  if (err) {
+    console.log(err, ' - Could not connect to database');
+    throw err;
+  }
 });
 
-// Routes
-app.use("/auth", authRoutes);
-app.use("/tweets", tweetRoutes);
-app.use("/profile", profileRoutes);
-
-app.use((req, res) => {
-  res.status(404).render("error", { message: "Page not found" });
+const redisClient = redis.createClient({
+  url: process.env.REDISCLOUD_URL,
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+redisClient.connect().then(() => {
+  const app = express();
+
+  app.use(helmet());
+  app.use('/assets', express.static(path.resolve(__dirname, '../client')));
+  app.use('/assets', express.static(path.join(__dirname, 'assets')));
+  app.use(favicon(path.join(__dirname, '../client/favicon.png')));
+  app.use(compression());
+  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(bodyParser.json());
+
+  app.use(session({
+    key: 'sessionid',
+    secret: 'Stuff',
+    store: new RedisStore({ client: redisClient }),
+    resave: true,
+    saveUninitialized: true,
+  }));
+
+  app.engine('handlebars', handlebars.engine({ defaultLayout: '' }));
+  app.set('view engine', 'handlebars');
+  app.set('views', path.join(__dirname, '../views'));
+ 
+  // Use the imported routes
+  app.use('/auth', authRoutes);
+  app.use('/tweets', tweetRoutes);
+  app.use('/profile', profileRoutes);
+
+  app.listen(port, (err) => {
+    if (err) { throw err; }
+    console.log(`Server is running on port ${port}`);
+  });
+}).catch((err) => {
+  console.log('Redis Client Error', err);
+});

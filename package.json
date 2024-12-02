@@ -4,12 +4,15 @@
   "description": "",
   "main": "./server/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node ./server/server.js",
+    "test": "echo \"Test Complete\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "compression": "^1.7.5",
     "connect-redis": "^8.0.0",
     "dotenv": "^16.4.5",
     "eslint": "^9.16.0",
@@ -18,6 +21,7 @@
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "mongoose": "^8.8.3",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "serve-favicon": "^2.5.0"
   }
 }
